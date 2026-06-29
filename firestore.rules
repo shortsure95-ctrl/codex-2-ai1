@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default safety deny block
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Shared Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // Comprehensive type, boundaries, and validation enforcer for Memories
+    function isValidMemory(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.category is string && data.category.size() <= 64
+        && (data.category == 'identity' || data.category == 'preference' || data.category == 'goal' || data.category == 'project' || data.category == 'relationship' || data.category == 'emotional' || data.category == 'behavior')
+        && data.text is string && data.text.size() <= 1024
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    // Hardened path boundaries for user recollections
+    match /users/{userId}/memories/{memoryId} {
+      allow get: if isSignedIn() && isOwner(userId) && isValidId(memoryId);
+      allow list: if isSignedIn() && isOwner(userId);
+
+      allow create: if isSignedIn() && isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming());
+      allow delete: if isSignedIn() && isOwner(userId) && isValidId(memoryId);
+    }
+  }
+}

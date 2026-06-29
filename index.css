@@ -1,0 +1,52 @@
+param(
+  [string]$OutputName = "moyna-ratan-ai-assistant-lite-final.zip"
+)
+
+$ErrorActionPreference = "Stop"
+
+$root = Resolve-Path (Join-Path $PSScriptRoot "..")
+$outputs = Join-Path $root "outputs"
+$stage = Join-Path $root ".package-stage"
+$zipPath = Join-Path $outputs $OutputName
+
+New-Item -ItemType Directory -Force -Path $outputs | Out-Null
+if (Test-Path -LiteralPath $stage) {
+  Remove-Item -LiteralPath $stage -Recurse -Force
+}
+New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+$excludeTop = @(
+  ".git",
+  ".package-stage",
+  "dist",
+  "node_modules",
+  "outputs",
+  "work"
+)
+
+Get-ChildItem -LiteralPath $root -Force | Where-Object { $excludeTop -notcontains $_.Name } | ForEach-Object {
+  if ($_.Name -eq "assets") {
+    $assetDest = Join-Path $stage "assets"
+    New-Item -ItemType Directory -Force -Path $assetDest | Out-Null
+    Get-ChildItem -LiteralPath $_.FullName -Force | Where-Object {
+      $_.Name -ne ".aistudio" -and
+      $_.Name -ne "5660672466363812436.vrm" -and
+      $_.Name -ne "Animated Woman.glb"
+    } | ForEach-Object {
+      Copy-Item -LiteralPath $_.FullName -Destination $assetDest -Recurse -Force
+    }
+  } else {
+    Copy-Item -LiteralPath $_.FullName -Destination $stage -Recurse -Force
+  }
+}
+
+if (Test-Path -LiteralPath $zipPath) {
+  Remove-Item -LiteralPath $zipPath -Force
+}
+
+$items = Get-ChildItem -LiteralPath $stage -Force
+Compress-Archive -LiteralPath $items.FullName -DestinationPath $zipPath -CompressionLevel Optimal
+
+$zip = Get-Item -LiteralPath $zipPath
+$mb = [math]::Round($zip.Length / 1MB, 2)
+Write-Output "Created $zipPath ($mb MB)"

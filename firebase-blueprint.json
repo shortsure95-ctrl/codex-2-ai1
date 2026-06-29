@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "Memory": {
+      "title": "Memory",
+      "description": "A persistent recorded user detail or preference",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique record identifier"
+        },
+        "category": {
+          "type": "string",
+          "description": "The classified memory archetype",
+          "enum": ["identity", "preference", "goal", "project", "relationship", "emotional", "behavior"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Declarative key personal fact statement"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp ISO string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp ISO string"
+        }
+      },
+      "required": ["id", "category", "text", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Sliding window recollections list stored securely per authenticated user ID key"
+    }
+  }
+}
